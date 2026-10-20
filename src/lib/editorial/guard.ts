@@ -7,10 +7,16 @@ export const EDITORIAL_ROLES: readonly Role[] = ["AUTHOR", "MEDICAL_REVIEWER", "
 export type Editor = { id: string; role: Role };
 
 // Returns the editor only if signed in, editorial role, and two-factor enabled.
+// Fails closed: any error while reading the session means no access.
 export async function getEditor(): Promise<Editor | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) return null;
-  const user = session.user as { id: string; role: Role; twoFactorEnabled?: boolean | null };
-  if (!EDITORIAL_ROLES.includes(user.role) || !user.twoFactorEnabled) return null;
-  return { id: user.id, role: user.role };
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) return null;
+    const user = session.user as { id: string; role: Role; twoFactorEnabled?: boolean | null };
+    if (!EDITORIAL_ROLES.includes(user.role) || !user.twoFactorEnabled) return null;
+    return { id: user.id, role: user.role };
+  } catch (err) {
+    console.error("session check failed; denying access", err);
+    return null;
+  }
 }
