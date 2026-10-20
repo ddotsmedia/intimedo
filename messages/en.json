@@ -1,0 +1,8 @@
+{
+  "site": { "name": "intimedo", "tagline": "Clear, source-linked sexual and reproductive health education." },
+  "home": {
+    "title": "A–Z health topics",
+    "intro": "Reviewed articles are coming soon. Content is education only and does not replace care from a clinician.",
+    "disclaimer": "This information is for education. For personal advice, speak with a qualified health professional. In an emergency, call your local emergency number."
+  }
+}
