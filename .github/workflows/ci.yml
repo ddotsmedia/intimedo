@@ -10,6 +10,18 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: intimedo
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: intimedo
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U intimedo" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://intimedo:ci@localhost:5432/intimedo
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,6 +29,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test

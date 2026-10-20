@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ArticleStatus {
+  DRAFT
+  UNDER_REVIEW
+  MEDICALLY_REVIEWED
+  PUBLISHED
+  NEEDS_REVIEW
+  ARCHIVED
+}
+
+enum Role {
+  READER
+  AUTHOR
+  MEDICAL_REVIEWER
+  SENIOR_EDITOR
+  ADMIN
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  entries   Entry[]
+}
+
+model Entry {
+  id         String    @id @default(cuid())
+  slug       String    @unique
+  title      String
+  letter     String    @db.VarChar(1)
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  aliases    Alias[]
+  article    Article?
+  createdAt  DateTime  @default(now())
+
+  @@index([letter])
+}
+
+model Alias {
+  id         String @id @default(cuid())
+  entryId    String
+  entry      Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  text       String
+  normalized String @unique
+
+  @@index([entryId])
+}
+
+model Article {
+  id           String        @id @default(cuid())
+  entryId      String        @unique
+  entry        Entry         @relation(fields: [entryId], references: [id], onDelete: Restrict)
+  status       ArticleStatus @default(DRAFT)
+  reviewerId   String?
+  reviewer     User?         @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+  publishedAt  DateTime?
+  nextReviewAt DateTime?
+  versions     ArticleVersion[]
+  references   ArticleReference[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([status])
+}
+
+model ArticleVersion {
+  id            String   @id @default(cuid())
+  articleId     String
+  article       Article  @relation(fields: [articleId], references: [id], onDelete: Restrict)
+  versionNumber Int
+  summary       String
+  bodyMd        String
+  createdById   String
+  createdBy     User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt     DateTime @default(now())
+
+  @@unique([articleId, versionNumber])
+}
+
+model Reference {
+  id         String   @id @default(cuid())
+  citation   String
+  url        String?
+  doi        String?
+  publisher  String
+  accessedAt DateTime
+  articles   ArticleReference[]
+}
+
+model ArticleReference {
+  articleId   String
+  article     Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  referenceId String
+  reference   Reference @relation(fields: [referenceId], references: [id], onDelete: Restrict)
+  claimNote   String
+
+  @@id([articleId, referenceId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String
+  targetId   String
+  detail     String?
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+}
+
+// Better Auth core tables
+model User {
+  id               String    @id
+  name             String
+  email            String    @unique
+  emailVerified    Boolean   @default(false)
+  image            String?
+  role             Role      @default(READER)
+  twoFactorEnabled Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  sessions         Session[]
+  accounts         Account[]
+  twoFactors       TwoFactor[]
+  articlesReviewed Article[]
+  versionsCreated  ArticleVersion[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model TwoFactor {
+  id          String @id
+  secret      String
+  backupCodes String
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

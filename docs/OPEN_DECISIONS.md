@@ -9,5 +9,5 @@
 | 5 | Hosting for production | Dedicated host. Shared VPS for staging only if disk is healthy and project is isolated |
 | 6 | AI provider | Deferred to Phase 5 |
 | 7 | Accounts at launch | None |
-| 8 | Auth library | Decide in Phase 2 after maintenance check |
+| 8 | Auth library | Decided: Better Auth (see ADR-005) |
 | 9 | Business model | No advertising at launch |
