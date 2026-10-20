@@ -1,3 +1,4 @@
+import Link from "next/link";
 import en from "../../messages/en.json";
 
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -9,15 +10,16 @@ export default function Home() {
       <p className="mt-3 text-[var(--color-muted)]">{en.home.intro}</p>
       <nav aria-label="A to Z index" className="mt-6 flex flex-wrap gap-2">
         {letters.map((letter) => (
-          <span
+          <Link
             key={letter}
-            aria-disabled="true"
-            className="rounded-[var(--radius)] border border-[var(--color-border)] px-3 py-1 text-[var(--color-muted)]"
+            href={`/a-z#letter-${letter}`}
+            className="rounded-[var(--radius)] border border-[var(--color-border)] px-3 py-1"
           >
             {letter}
-          </span>
+          </Link>
         ))}
       </nav>
+      <p className="mt-6"><Link className="underline" href="/search">Search all topics</Link></p>
       <aside className="mt-10 rounded-[var(--radius)] border border-[var(--color-border)] p-4 text-sm text-[var(--color-muted)]">
         {en.home.disclaimer}
       </aside>

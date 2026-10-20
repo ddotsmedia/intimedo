@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createAuthClient } from "better-auth/react";
 import { twoFactorClient } from "better-auth/client/plugins";
 
 const client = createAuthClient({ plugins: [twoFactorClient()] });
 
 export default function SignIn() {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [needsCode, setNeedsCode] = useState(false);
 
@@ -22,7 +24,8 @@ export default function SignIn() {
       if (r.error) return setError("Sign-in failed.");
       if (r.data && "twoFactorRedirect" in r.data && r.data.twoFactorRedirect) return setNeedsCode(true);
     }
-    window.location.href = "/admin";
+    router.push("/admin");
+    router.refresh();
   }
 
   return (
