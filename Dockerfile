@@ -7,7 +7,11 @@ FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# Build-time placeholders only. The run stage does not inherit these.
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build \
+    BETTER_AUTH_URL=http://localhost:3000 \
+    BETTER_AUTH_SECRET=build-time-placeholder-not-used-at-runtime-0000
+RUN npx prisma generate && npm run build
 
 FROM node:22-alpine AS run
 WORKDIR /app
