@@ -13,7 +13,7 @@ export default function Home() {
           <Link
             key={letter}
             href={`/a-z#letter-${letter}`}
-            className="inline-flex min-h-9 min-w-9 items-center justify-center rounded-[var(--radius)] border border-[var(--color-border)] px-3"
+            className="inline-flex min-h-[2.5rem] min-w-[2.5rem] items-center justify-center rounded-[var(--radius)] border border-[var(--color-border)] px-3"
           >
             {letter}
           </Link>
