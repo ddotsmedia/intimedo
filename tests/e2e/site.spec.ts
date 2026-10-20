@@ -9,8 +9,12 @@ for (const path of pages) {
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag22aa"]).analyze();
     const blocking = results.violations
       .filter((v) => v.impact === "serious" || v.impact === "critical")
-      .map((v) => `${v.id} (${v.nodes.length})`);
-    expect(blocking).toEqual([]);
+      .map((v) => ({
+        id: v.id,
+        count: v.nodes.length,
+        sample: v.nodes.slice(0, 2).map((n) => `${n.html.slice(0, 160)} :: ${n.failureSummary?.slice(0, 200)}`),
+      }));
+    expect(blocking, JSON.stringify(blocking, null, 1)).toEqual([]);
   });
 }
 
