@@ -15,5 +15,5 @@ export default defineConfig({
       BETTER_AUTH_URL: `http://127.0.0.1:${port}`,
     },
   },
-  reporter: [["list"]],
+  reporter: process.env.CI ? [["github"], ["list"]] : [["list"]],
 });
