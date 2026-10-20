@@ -15,8 +15,9 @@ export default function Security() {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const r = await client.twoFactor.enable({ password: String(f.get("password")) });
-    if (r.error || !r.data) return setMessage("Could not start two-factor setup.");
-    setUri(r.data.totpURI);
+    const data = r.data;
+    if (r.error || !data || !("totpURI" in data)) return setMessage("Could not start two-factor setup.");
+    setUri(data.totpURI);
   }
 
   async function verify(e: React.FormEvent<HTMLFormElement>) {
