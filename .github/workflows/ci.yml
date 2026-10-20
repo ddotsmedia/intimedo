@@ -34,7 +34,12 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+        env:
+          BETTER_AUTH_SECRET: ci-test-secret-not-used-at-runtime-00000000
       - run: npm run build
+        env:
+          BETTER_AUTH_SECRET: ci-build-secret-not-used-at-runtime-00000000
+          BETTER_AUTH_URL: http://localhost:3000
 
   docker:
     runs-on: ubuntu-latest
