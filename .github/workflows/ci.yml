@@ -41,6 +41,33 @@ jobs:
           BETTER_AUTH_SECRET: ci-build-secret-not-used-at-runtime-00000000
           BETTER_AUTH_URL: http://localhost:3000
 
+  restore-test:
+    runs-on: ubuntu-latest
+    needs: check
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: intimedo
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: intimedo
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U intimedo" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://intimedo:ci@localhost:5432/intimedo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: scripts/backup.sh "$RUNNER_TEMP/backups" | tee /tmp/dump-path
+      - run: scripts/restore-test.sh "$(cat /tmp/dump-path)"
+
   docker:
     runs-on: ubuntu-latest
     needs: check

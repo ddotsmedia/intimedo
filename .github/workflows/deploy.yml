@@ -1,0 +1,44 @@
+# Manual production deploy. Runs only from the Actions tab (workflow_dispatch).
+# UNVERIFIED: needs a host and the environment secrets listed in docs/DEPLOYMENT.md.
+name: Deploy production
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag (commit SHA or previous tag for rollback)"
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
+      DOCKER_HOST: ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh && echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+      - name: Build and push image
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker build -t ghcr.io/ddotsmedia/intimedo-web:${IMAGE_TAG} .
+          docker push ghcr.io/ddotsmedia/intimedo-web:${IMAGE_TAG}
+      - name: Deploy and verify
+        run: |
+          docker compose -f compose.yaml -f compose.prod.yaml pull web
+          docker compose -f compose.yaml -f compose.prod.yaml up -d --no-build
+          for i in $(seq 1 12); do
+            if docker compose -f compose.yaml -f compose.prod.yaml exec -T web wget -qO- http://127.0.0.1:3000/api/health | grep -q '"ok"'; then echo HEALTHY; exit 0; fi
+            sleep 5
+          done
+          echo "health check failed"; exit 1

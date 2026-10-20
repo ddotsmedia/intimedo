@@ -1,0 +1,6 @@
+# Production override: runs the image built and pushed by the deploy workflow.
+services:
+  web:
+    image: ghcr.io/ddotsmedia/intimedo-web:${IMAGE_TAG:?set IMAGE_TAG}
+    pull_policy: always
+    build: !reset null
