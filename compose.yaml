@@ -3,7 +3,7 @@ services:
     build: .
     image: intimedo-web:local
     environment:
-      DATABASE_URL: postgresql://intimedo:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/intimedo
+      DATABASE_URL: postgresql://intimedo:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${DB_NAME:-intimedo}
     ports:
       - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
@@ -17,7 +17,7 @@ services:
     environment:
       POSTGRES_USER: intimedo
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-      POSTGRES_DB: intimedo
+      POSTGRES_DB: ${DB_NAME:-intimedo}
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:

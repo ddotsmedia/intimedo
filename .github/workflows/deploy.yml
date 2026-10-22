@@ -1,11 +1,11 @@
 # Manual production deploy. Runs only from the Actions tab (workflow_dispatch).
-# UNVERIFIED: needs a host and the environment secrets listed in docs/DEPLOYMENT.md.
+# Secrets follow the Oct 22, 2026 standard. UNVERIFIED until a host and secrets exist.
 name: Deploy production
 on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Image tag (commit SHA or previous tag for rollback)"
+        description: "Image tag to deploy (commit SHA)"
         required: true
 
 permissions:
@@ -18,27 +18,58 @@ jobs:
     environment: production
     env:
       IMAGE_TAG: ${{ inputs.image_tag }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+      POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      BETTER_AUTH_SECRET: ${{ secrets.INTIMEDO_SECRET }}
       BETTER_AUTH_URL: ${{ vars.BETTER_AUTH_URL }}
-      DOCKER_HOST: ssh://${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up SSH
         run: |
-          mkdir -p ~/.ssh && echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
-      - name: Build and push image
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+      - name: Build and push image (runs on the runner)
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker build -t ghcr.io/ddotsmedia/intimedo-web:${IMAGE_TAG} .
           docker push ghcr.io/ddotsmedia/intimedo-web:${IMAGE_TAG}
-      - name: Deploy and verify
+      - name: Record currently running image (for rollback)
+        id: prev
+        env:
+          DOCKER_HOST: ssh://${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+        run: |
+          CID=$(docker compose -f compose.yaml -f compose.prod.yaml ps -q web 2>/dev/null || true)
+          REF=""
+          if [ -n "$CID" ]; then REF=$(docker inspect -f '{{.Config.Image}}' "$CID" || true); fi
+          echo "previous=$REF" >> "$GITHUB_OUTPUT"
+          echo "previous image: ${REF:-none}"
+      - name: Deploy
+        env:
+          DOCKER_HOST: ssh://${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
         run: |
           docker compose -f compose.yaml -f compose.prod.yaml pull web
           docker compose -f compose.yaml -f compose.prod.yaml up -d --no-build
+      - name: Verify health
+        env:
+          DOCKER_HOST: ssh://${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+        run: |
           for i in $(seq 1 12); do
-            if docker compose -f compose.yaml -f compose.prod.yaml exec -T web wget -qO- http://127.0.0.1:3000/api/health | grep -q '"ok"'; then echo HEALTHY; exit 0; fi
+            if docker compose -f compose.yaml -f compose.prod.yaml exec -T web wget -qO- http://127.0.0.1:3000/api/health | grep -q '"ok"'; then
+              echo HEALTHY; exit 0
+            fi
             sleep 5
           done
           echo "health check failed"; exit 1
+      - name: Roll back to previous image on failure
+        if: failure() && steps.prev.outputs.previous != ''
+        env:
+          DOCKER_HOST: ssh://${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+          PREVIOUS: ${{ steps.prev.outputs.previous }}
+        run: |
+          PREV_TAG="${PREVIOUS##*:}"
+          export IMAGE_TAG="$PREV_TAG"
+          docker compose -f compose.yaml -f compose.prod.yaml pull web
+          docker compose -f compose.yaml -f compose.prod.yaml up -d --no-build
+          echo "rolled back to $PREV_TAG"

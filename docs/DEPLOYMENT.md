@@ -12,6 +12,8 @@ Phase 0 creates no workflow files. Workflows arrive in Phase 1.
 
 ## Production deploy (implemented, not yet run)
 - Workflow: `.github/workflows/deploy.yml`, manual only, environment `production`.
-- Environment secrets: `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `POSTGRES_PASSWORD`, `BETTER_AUTH_SECRET`. Variable: `BETTER_AUTH_URL`.
-- Rollback: run the workflow with the previous image tag.
+- Secrets (standard names, Oct 22, 2026): `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `DB_PASSWORD`, `DB_NAME`, `INTIMEDO_SECRET`. Variable: `BETTER_AUTH_URL`.
+- Automatic rollback: if the health check fails, the workflow redeploys the image that was running before. The first deploy has nothing to roll back to, so it fails without rollback.
+- Manual rollback: run the workflow with a previous commit SHA.
 - Unverified until a host exists and the secrets are set.
+- Needs a one-off `prisma migrate deploy` before the first production deploy (not yet automated).

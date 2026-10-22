@@ -5,6 +5,8 @@ describe("health", () => {
   it("returns ok", async () => {
     const res = GET();
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ status: "ok" });
+    const body = await res.json();
+    expect(body.status).toBe("ok");
+    expect(typeof body.timestamp).toBe("string");
   });
 });
