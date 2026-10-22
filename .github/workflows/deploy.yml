@@ -40,7 +40,7 @@ jobs:
         env:
           DOCKER_HOST: ssh://${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
         run: |
-          CID=$(docker compose -f compose.yaml -f compose.prod.yaml ps -q web 2>/dev/null || true)
+          CID=$(docker compose -f compose.yaml -f docker-compose.prod.yml ps -q web 2>/dev/null || true)
           REF=""
           if [ -n "$CID" ]; then REF=$(docker inspect -f '{{.Config.Image}}' "$CID" || true); fi
           echo "previous=$REF" >> "$GITHUB_OUTPUT"
@@ -49,14 +49,14 @@ jobs:
         env:
           DOCKER_HOST: ssh://${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
         run: |
-          docker compose -f compose.yaml -f compose.prod.yaml pull web
-          docker compose -f compose.yaml -f compose.prod.yaml up -d --no-build
+          docker compose -f compose.yaml -f docker-compose.prod.yml pull web
+          docker compose -f compose.yaml -f docker-compose.prod.yml up -d --no-build
       - name: Verify health
         env:
           DOCKER_HOST: ssh://${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
         run: |
           for i in $(seq 1 12); do
-            if docker compose -f compose.yaml -f compose.prod.yaml exec -T web wget -qO- http://127.0.0.1:3000/api/health | grep -q '"ok"'; then
+            if docker compose -f compose.yaml -f docker-compose.prod.yml exec -T web wget -qO- http://127.0.0.1:3000/api/health | grep -q '"ok"'; then
               echo HEALTHY; exit 0
             fi
             sleep 5
@@ -70,6 +70,6 @@ jobs:
         run: |
           PREV_TAG="${PREVIOUS##*:}"
           export IMAGE_TAG="$PREV_TAG"
-          docker compose -f compose.yaml -f compose.prod.yaml pull web
-          docker compose -f compose.yaml -f compose.prod.yaml up -d --no-build
+          docker compose -f compose.yaml -f docker-compose.prod.yml pull web
+          docker compose -f compose.yaml -f docker-compose.prod.yml up -d --no-build
           echo "rolled back to $PREV_TAG"
