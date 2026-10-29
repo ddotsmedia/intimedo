@@ -9,7 +9,7 @@ test.beforeAll(async ({ request }) => {
     headers: { origin: "http://127.0.0.1:3100" },
     data: { email, password, name: "Test Editor" },
   });
-  expect(res.ok()).toBeTruthy();
+  expect(res.ok(), `sign-up ${res.status()}: ${await res.text()}`).toBeTruthy();
   const db = new Client({ connectionString: process.env.DATABASE_URL });
   await db.connect();
   await db.query('UPDATE "User" SET role = \'ADMIN\' WHERE email = $1', [email]);
