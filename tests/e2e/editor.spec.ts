@@ -26,7 +26,7 @@ test("wrong password is rejected", async ({ page }) => {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill("wrong-password-value");
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Sign-in failed.");
+  await expect(page.locator("p[role=alert]")).toHaveText("Sign-in failed.");
 });
 
 test("editor without two-factor is sent to enrolment, not the dashboard", async ({ page }) => {
