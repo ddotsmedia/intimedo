@@ -95,6 +95,12 @@ jobs:
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - run: npm run build
+      - name: TEMP debug sign-up
+        run: |
+          npm run start -- -p 3100 > "$RUNNER_TEMP/server.log" 2>&1 &
+          sleep 8
+          curl -s -i -X POST http://127.0.0.1:3100/api/auth/sign-up/email -H 'content-type: application/json' -H 'origin: http://127.0.0.1:3100' -d '{"email":"dbg@example.test","password":"correct-horse-battery-1","name":"Dbg"}' | head -c 1500
+          echo; echo ---LOG; tail -c 4000 "$RUNNER_TEMP/server.log"
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
 
