@@ -99,8 +99,11 @@ jobs:
         run: |
           npm run start -- -p 3100 > "$RUNNER_TEMP/server.log" 2>&1 &
           sleep 8
-          curl -s -i -X POST http://127.0.0.1:3100/api/auth/sign-up/email -H 'content-type: application/json' -H 'origin: http://127.0.0.1:3100' -d '{"email":"dbg@example.test","password":"correct-horse-battery-1","name":"Dbg"}' | head -c 1500
-          echo; echo ---LOG; tail -c 4000 "$RUNNER_TEMP/server.log"
+          R=$(curl -s -i -X POST http://127.0.0.1:3100/api/auth/sign-up/email -H 'content-type: application/json' -H 'origin: http://127.0.0.1:3100' -d '{"email":"dbg@example.test","password":"correct-horse-battery-1","name":"Dbg"}' | head -c 600 | tr '\n' ' ')
+          L=$(tail -c 2500 "$RUNNER_TEMP/server.log" | tr '\n' ' ')
+          echo "::error::RESP $R LOG $L"
+          pkill -f "next start" || true
+          sleep 3
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
 
