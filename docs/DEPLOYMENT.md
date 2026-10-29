@@ -16,4 +16,4 @@ Phase 0 creates no workflow files. Workflows arrive in Phase 1.
 - Automatic rollback: if the health check fails, the workflow redeploys the image that was running before. The first deploy has nothing to roll back to, so it fails without rollback.
 - Manual rollback: run the workflow with a previous commit SHA.
 - Unverified until a host exists and the secrets are set.
-- Needs a one-off `prisma migrate deploy` before the first production deploy (not yet automated).
+- Migrations run automatically on every deploy from the `intimedo-migrate` image, before the web container starts. Migrations are not reversed on rollback.

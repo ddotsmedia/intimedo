@@ -35,6 +35,8 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker build -t ghcr.io/ddotsmedia/intimedo-web:${IMAGE_TAG} .
           docker push ghcr.io/ddotsmedia/intimedo-web:${IMAGE_TAG}
+          docker build --target migrate -t ghcr.io/ddotsmedia/intimedo-migrate:${IMAGE_TAG} .
+          docker push ghcr.io/ddotsmedia/intimedo-migrate:${IMAGE_TAG}
       - name: Record currently running image (for rollback)
         id: prev
         env:
@@ -49,7 +51,9 @@ jobs:
         env:
           DOCKER_HOST: ssh://${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
         run: |
-          docker compose -f compose.yaml -f docker-compose.prod.yml pull web
+          docker compose -f compose.yaml -f docker-compose.prod.yml pull web migrate
+          docker compose -f compose.yaml -f docker-compose.prod.yml up -d --no-build db
+          docker compose -f compose.yaml -f docker-compose.prod.yml run --rm migrate
           docker compose -f compose.yaml -f docker-compose.prod.yml up -d --no-build
       - name: Verify health
         env:
@@ -62,7 +66,7 @@ jobs:
             sleep 5
           done
           echo "health check failed"; exit 1
-      - name: Roll back to previous image on failure
+      - name: Roll back to previous image on failure (migrations are not reversed)
         if: failure() && steps.prev.outputs.previous != ''
         env:
           DOCKER_HOST: ssh://${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}

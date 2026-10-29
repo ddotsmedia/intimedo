@@ -13,6 +13,9 @@ ENV DATABASE_URL=postgresql://build:build@localhost:5432/build \
     BETTER_AUTH_SECRET=build-time-placeholder-not-used-at-runtime-0000
 RUN npx prisma generate && npm run build
 
+FROM build AS migrate
+CMD ["npx", "prisma", "migrate", "deploy"]
+
 FROM node:22-alpine AS run
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0

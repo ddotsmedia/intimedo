@@ -4,3 +4,13 @@ services:
     image: ghcr.io/ddotsmedia/intimedo-web:${IMAGE_TAG:?set IMAGE_TAG}
     pull_policy: always
     build: !reset null
+  migrate:
+    image: ghcr.io/ddotsmedia/intimedo-migrate:${IMAGE_TAG:?set IMAGE_TAG}
+    pull_policy: always
+    environment:
+      DATABASE_URL: postgresql://intimedo:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${DB_NAME:-intimedo}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+    profiles: ["migrate"]
