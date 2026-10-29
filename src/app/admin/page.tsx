@@ -1,12 +1,22 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getEditor } from "@/lib/editorial/guard";
+import { EDITORIAL_ROLES, getEditor } from "@/lib/editorial/guard";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const editor = await getEditor();
-  if (!editor) redirect("/admin/sign-in");
+  if (!editor) {
+    // Signed in with an editorial role but no two-factor yet: send to enrolment.
+    const session = await auth.api.getSession({ headers: await headers() }).catch(() => null);
+    const user = session?.user as { role?: string; twoFactorEnabled?: boolean | null } | undefined;
+    if (user && (EDITORIAL_ROLES as readonly string[]).includes(user.role ?? "") && !user.twoFactorEnabled) {
+      redirect("/admin/security");
+    }
+    redirect("/admin/sign-in");
+  }
 
   const articles = await prisma.article.findMany({
     include: { entry: { select: { title: true, slug: true } } },
