@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { prisma } from "../../src/lib/db";
+import { Client } from "pg";
 
 const email = `editor-${Date.now()}@example.test`;
 const password = "correct-horse-battery-1";
@@ -10,7 +10,10 @@ test.beforeAll(async ({ request }) => {
     data: { email, password, name: "Test Editor" },
   });
   expect(res.ok()).toBeTruthy();
-  await prisma.user.update({ where: { email }, data: { role: "ADMIN" } });
+  const db = new Client({ connectionString: process.env.DATABASE_URL });
+  await db.connect();
+  await db.query('UPDATE "User" SET role = \'ADMIN\' WHERE email = $1', [email]);
+  await db.end();
 });
 
 test("anonymous dashboard request goes to sign-in", async ({ page }) => {
