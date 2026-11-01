@@ -65,15 +65,10 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - run: npx prisma migrate deploy
-      - name: Use PostgreSQL 16 client tools (match production server)
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-16
-          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
-      - name: Check client version
-        run: pg_dump --version
-      - run: scripts/backup.sh "$RUNNER_TEMP/backups" | tee /tmp/dump-path
-      - run: scripts/restore-test.sh "$(cat /tmp/dump-path)"
+      - name: Backup with PostgreSQL 16 tools (match production)
+        run: docker run --rm --network host -e DATABASE_URL -v "$PWD:/work" -v "$RUNNER_TEMP:$RUNNER_TEMP" -w /work --entrypoint bash postgres:16 scripts/backup.sh "$RUNNER_TEMP/backups" | tee /tmp/dump-path
+      - name: Restore test with PostgreSQL 16 tools
+        run: docker run --rm --network host -e DATABASE_URL -v "$PWD:/work" -v "$RUNNER_TEMP:$RUNNER_TEMP" -w /work --entrypoint bash postgres:16 scripts/restore-test.sh "$(cat /tmp/dump-path)"
 
   e2e:
     runs-on: ubuntu-latest
