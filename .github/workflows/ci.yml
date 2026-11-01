@@ -66,7 +66,14 @@ jobs:
       - run: npx prisma generate
       - run: npx prisma migrate deploy
       - run: scripts/backup.sh "$RUNNER_TEMP/backups" | tee /tmp/dump-path
-      - run: scripts/restore-test.sh "$(cat /tmp/dump-path)"
+      - name: TEMP restore diagnostic
+        run: |
+          V="$(pg_dump --version) | $(pg_restore --version) | $(psql --version)"
+          set +e
+          scripts/restore-test.sh "$(cat /tmp/dump-path)" > "$RUNNER_TEMP/restore.log" 2>&1
+          RC=$?
+          echo "::error::RC=$RC VERSIONS $V OUT $(tail -c 1500 "$RUNNER_TEMP/restore.log" | tr -d '\r' | tr '\n' ' ')"
+          exit $RC
 
   e2e:
     runs-on: ubuntu-latest
