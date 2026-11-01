@@ -65,15 +65,15 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - run: npx prisma migrate deploy
-      - run: scripts/backup.sh "$RUNNER_TEMP/backups" | tee /tmp/dump-path
-      - name: TEMP restore diagnostic
+      - name: Use PostgreSQL 16 client tools (match production server)
         run: |
-          V="$(pg_dump --version) | $(pg_restore --version) | $(psql --version)"
-          set +e
-          scripts/restore-test.sh "$(cat /tmp/dump-path)" > "$RUNNER_TEMP/restore.log" 2>&1
-          RC=$?
-          echo "::error::RC=$RC VERSIONS $V OUT $(tail -c 1500 "$RUNNER_TEMP/restore.log" | tr -d '\r' | tr '\n' ' ')"
-          exit $RC
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - name: Check client version
+        run: pg_dump --version
+      - run: scripts/backup.sh "$RUNNER_TEMP/backups" | tee /tmp/dump-path
+      - run: scripts/restore-test.sh "$(cat /tmp/dump-path)"
 
   e2e:
     runs-on: ubuntu-latest
