@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@/generated/prisma/client";
+import { rank } from "@/lib/search/rank";
 
 // Public reads: only PUBLISHED articles are ever returned.
 export async function listPublishedEntries(db: PrismaClient) {
@@ -27,7 +28,7 @@ export async function getPublishedArticle(db: PrismaClient, slug: string) {
 export async function searchPublished(db: PrismaClient, query: string) {
   const term = query.trim().slice(0, 100);
   if (term.length < 2) return [];
-  return db.entry.findMany({
+  const rows = await db.entry.findMany({
     where: {
       article: { status: "PUBLISHED" },
       OR: [
@@ -35,8 +36,11 @@ export async function searchPublished(db: PrismaClient, query: string) {
         { aliases: { some: { text: { contains: term, mode: "insensitive" } } } },
       ],
     },
-    select: { slug: true, title: true },
-    orderBy: { title: "asc" },
-    take: 50,
+    select: { slug: true, title: true, aliases: { select: { text: true } } },
+    take: 200,
   });
+  return rank(
+    term,
+    rows.map((r) => ({ slug: r.slug, title: r.title, aliases: r.aliases.map((a) => a.text) })),
+  ).map(({ slug, title }) => ({ slug, title }));
 }
