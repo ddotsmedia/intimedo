@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-const pages = ["/", "/a-z", "/search", "/tools/bmi", "/tools/due-date", "/privacy", "/editorial-policy", "/disclaimer", "/admin/sign-in"];
+const pages = ["/", "/a-z", "/search", "/tools/bmi", "/tools/due-date", "/privacy", "/editorial-policy", "/disclaimer", "/admin/sign-in", "/categories"];
 
 for (const path of pages) {
   test(`no serious or critical WCAG 2.2 AA violations: ${path}`, async ({ page }) => {
@@ -21,4 +21,9 @@ for (const path of pages) {
 test("admin transition rejects anonymous requests", async ({ request }) => {
   const res = await request.post("/api/admin/articles/none/transition", { data: { action: "publish" } });
   expect(res.status()).toBe(403);
+});
+
+test("unknown pages return 404", async ({ request }) => {
+  const res = await request.get("/no-such-page");
+  expect(res.status()).toBe(404);
 });

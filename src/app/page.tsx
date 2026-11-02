@@ -19,7 +19,7 @@ export default function Home() {
           </Link>
         ))}
       </nav>
-      <p className="mt-6"><Link className="underline" href="/search">Search all topics</Link></p>
+      <p className="mt-6 flex flex-wrap gap-x-6 gap-y-2"><Link className="underline" href="/search">Search all topics</Link><Link className="underline" href="/categories">Browse by category</Link></p>
       <aside className="mt-10 rounded-[var(--radius)] border border-[var(--color-border)] p-4 text-sm text-[var(--color-muted)]">
         {en.home.disclaimer}
       </aside>
